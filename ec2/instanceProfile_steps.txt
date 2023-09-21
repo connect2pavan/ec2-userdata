@@ -1,0 +1,9 @@
+Steps to create attach an IAM Instance profile to EC2
+
+1) Create a policy with required permissions. eg : access S3 
+2) Create a trust polict with principal as EC20
+3) Create a role with trust policy
+4) Attach policy in first step to Role
+5) Create an Instance profile in IAM
+6) Add the role to this instance profile
+7) attach this instance profile to existing EC2 / as part of new Instance creation
