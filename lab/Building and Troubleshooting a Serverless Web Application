@@ -1,0 +1,345 @@
+https://github.com/ACloudGuru/hands-on-aws-troubleshooting
+https://web.mit.edu/merolish/Public/vi-ref.pdf
+https://github.com/ACloudGuru/hands-on-aws-troubleshooting/tree/main/Building_and_Troubleshooting_a_Serverless_Web_Application
+
+
+Building and Troubleshooting a Serverless Web Application
+Introduction
+In this hands-on lab, we are going to build and troubleshoot a serverless web application using the following technologies:
+
+DynamoDB
+Lambda
+API Gateway
+S3
+X-Ray
+Solution
+Log in to the AWS Management Console using the credentials provided on the lab instructions page. Make sure you're using the us-east-1 Region.
+
+Create a DynamoDB Table
+Open the AWS CLI by clicking on the CloudShell button in top-right corner.
+
+Click Close on the Welcome to AWS CloudShell pop-up.
+
+Look in the top-right corner to confirm you are in the N. Virginia Region.
+
+Clone the Git repository:
+
+git clone https://github.com/ACloudGuru/hands-on-aws-troubleshooting/
+Change to the correct directory:
+
+cd hands-on-aws-troubleshooting/
+Change directory again:
+
+cd Building_and_Troubleshooting_a_Serverless_Web_Application/
+List the files:
+
+ls
+Create the DynamoDB table and populate it:
+
+aws dynamodb create-table --table-name fortunes --attribute-definitions \
+AttributeName=fort_id,AttributeType=N --key-schema \
+AttributeName=fort_id,KeyType=HASH \
+--provisioned-throughput ReadCapacityUnits=5,WriteCapacityUnits=5
+Note: If you're using Windows, replace \ with ^ character (Shift + 6)
+
+Note: You can find the command in the GitHub repository > Building_and_Troubleshooting_a_Serverless_Web_Application/ > dynamodb_commands.txt > underneath 1) Create fortunes table:
+
+In the Safe Paste for multiline text, click Paste.
+
+Press Enter.
+
+Navigate to the items.json folder:
+
+cat items.json
+Populate the fortunes table (this command can be found in dynamodb_commands.txt):
+
+aws dynamodb batch-write-item --request-items file://items.json
+You should see the "UnprocessedItems" message if the table was successfully populated.
+
+Create a Lambda Function with a Function Endpoint
+Navigate to the GitHub repository > lambda_function.py and review the code making up the function.
+Click Raw in the top-right corner.
+Copy the code and navigate back to the AWS CLI.
+Click Services in the top-left corner.
+In the Search bar at the top, enter Lambda.
+Right-click Lambda and open it in a new tab.
+In the Lambda console, click Create a function in the top-right corner.
+Under Basic Information, set the following values:
+Function name: Enter mylambdafunction.
+Runtime: Select Python 3.9.
+Click Create function.
+Click the Configuration tab.
+Click Edit.
+Change the Memory to 256 MB.
+Click Save.
+Click the Code tab.
+Scroll down and delete the code listed in the lambda_function code editor.
+Paste in the previously copied code (i.e., the lambda_function.py code).
+Click Deploy at the top.
+Click Test.
+Under Configure test event, set the following values:
+Test event action: Select Create new event.
+Event name: Enter te1.
+Leave the other settings as default and click Save.
+Click Test to run.
+Note: If you see a timeout error, click Test again until you see the AccessDeniedException error.
+
+Under Response, review the AccessDeniedException error.
+Click on Configuration above Code source.
+Under the General configuration menu on the left, select Permissions.
+Under Execution role > Role name, click on the Lambda execution role.
+Under Permissions policies, Select Add permissions > Attach policies.
+Under Other permissions policies, enter dynamodb in the search bar.
+Click on the checkbox next to AmazonDynamoDBReadOnlyAccess.
+Click Attach policies.
+Navigate back to the mylambdafunction - Lambda browser tab.
+Navigate to the Code tab.
+Click Test.
+You should see statusCode": 200.
+Click on Configuration above Code source.
+Under the General configuration menu on the left, select Function URL.
+Click Create function URL.
+Under Configure Function URL, for Auth type, select NONE.
+Scroll down and click Save.
+Under Description in the top right, copy the Function URL and paste it in a new browser tab.
+Create an S3 Bucket and Upload the Website Files
+In the AWS CloudShell, ensure you're in the correct directory (you should see the following files: index.html, error.html,cookie.jpg, etc.):
+
+ls
+Use the vi editor to modify the index.html file. You can review the Vi Editor cheat sheet here.
+
+vi index.html
+Scroll down, and then press the Esc key + j. You should see your cursor move down every time you type j.
+
+Move down until you get to the line containing xhttp.open.
+
+Press the Esc key + l to move your cursor until you reach the first letter of the API gateway string within the quotation marks.
+
+Press the Esc key + x to delete the entire string. Once you've deleted the string, it should look like this: xhttp.open("GET", "", true);
+
+Press the Esc key + i to enter insert mode.
+
+Navigate to mylambdafunction - Lambda browser tab.
+
+Under Description, copy the Function URL.
+
+Navigate to back to the AWS CloudShell and paste the function URL within the quotation marks. It should look like this: xhttp.open("GET", "<FUNCTION_URL>", true);.
+
+Press the Esc key + :wq!.
+
+Press Enter.
+
+Create an S3 Bucket with Public Access Enabled
+Navigate to mylambdafunction - Lambda browser tab.
+
+In the Search bar at the top, enter and select S3.
+
+Click Create bucket and set the following values:
+
+Bucket name: Enter mywebsitefilesXXX with random characters replacing XXX to ensure the bucket name is unique.
+Deeselect Block all public access.
+Select the box next to I acknowledge that the current settings might result in this bucket and the objects within becoming public for the Turning off block all public access might result in this bucket and the objects within becoming public warning.
+Leave the other settings as default and click Create bucket.
+
+Select your bucket and navigate to the Permissions tab.
+
+Click Edit next to Bucket policy.
+
+Paste in the the following policy:
+
+{
+    "Version": "2012-10-17",
+    "Id": "Policy1650555565088",
+    "Statement": [
+        {
+            "Sid": "Stmt1650555563210",
+            "Effect": "Allow",
+            "Principal": "*",
+            "Action": "s3:GetObject",
+            "Resource": "arn:aws:s3:::mywebsitefiles6754376825/*"
+        }
+    ]
+}
+Copy the bucket ARN shown above Policy.
+
+Replace the Resource string within the quotation marks with the bucket ARN: "Resource": "<BUCKET_ARN>/*"
+
+Note: Make sure /* is after the bucket ARN
+
+Click Save changes.
+You should see Publicly accessible under the bucket name.
+Upload Three Files to the S3 Bucket
+Navigate back to the AWS CloudShell and ensure you're in the correct directory; you should see the following files: index.html, error.html,cookie.jpg, etc.:
+
+ls
+Locate the name of your bucket:
+
+aws s3 ls
+Copy the index.html file to the bucket:
+
+aws s3 cp index.html s3://<BUCKET_NAME>
+Repeat the above step with the error.html and cookie.jpg objects. Replace index.html with the name of each item: aws s3 cp <OBJECT> s3://<BUCKET_NAME>. All three objects should be uploaded to your bucket.
+
+Navigate back to S3 Management Console browser tab.
+
+Click on your bucket under Buckets to open it.
+
+You should see index.html, error.html, and cookie.jpg.
+
+Configure S3 Static Website Hosting on Your S3 Bucket and Confirm It’s Accessible from the S3 Website-Hosting URL
+Navigate to the Properties tab.
+Scroll all the way down to Static website hosting.
+Click Edit.
+Under Static website hosting, select Enable.
+Set the following values:
+Index document: Enter index.html.
+Error document: Enter error.html.
+Click Save changes.
+Scroll all the way down to Static website hosting and copy the bucket website endpoint.
+Paste the website endpoint in a new browser tab. You should see Hello Cloud Gurus! Welcome to The Calorie Free Serverless Fortune Cookie.
+Select Click here to learn your fortune! to receive a fortune.
+Configure X-Ray
+Navigate to the mylamdafunction - Lambda browser tab and click on your function (Lambda > Functions > mylambdafunction).
+
+Click Configuration at the top.
+
+Select Monitoring and operations tools in the left menu.
+
+Select Edit.
+
+Under AWS X-Ray, enable Active tracing.
+
+Scroll down and click Save.
+
+Navigate to the GitHub repository > layer.zip.
+
+On your local machine, clone the repository:
+
+git clone https://github.com/ACloudGuru/hands-on-aws-troubleshooting
+Move into the correct directory:
+
+cd hands-on-aws-troubleshooting
+Move into the correct directory:
+
+cd Building_and_Troubleshooting_a_Serverless_Web_Application
+List the files. You should see the layer.zip file:
+
+ls
+Navigate to the mylamdafunction - Lambda browser tab.
+
+Click on the hamburger icon in the top-left corner to open the menu.
+
+Under Additional resources, select Layers.
+
+Click Create layer.
+
+Under Name, enter myLambdaLayer.
+
+Ensure Upload a .zip file is selected.
+
+Click Upload and upload the layer.zip file.
+
+Under Compatible architectures, click on the dropdown menu and select Python 3.9.
+
+Click Create.
+
+Click on the hamburger icon in the top-left corner to open the menu and select Functions.
+
+Click on your Lambda function to open it.
+
+Under Function overview, select Layers.
+
+Under Layers, select Add a layer.
+
+Under Choose a layer, select Custom layers.
+
+Under Custom layers, click on the dropdown menu and select your layer.
+
+Under Version, select the only one listed.
+
+Click Add.
+
+Scroll down until you see Code source.
+
+Under the import section, create a new line.
+
+Navigate to the GitHub repository and click on lambda_function_xray.py.
+
+Click Raw in the top-right corner.
+
+Copy the code.
+
+In the new space under import section, paste in the code. Make sure the code correctly lines up.
+
+Click Deploy.
+
+Click Test.
+
+Review the errorMessage.
+
+Fix the Timeout Error
+Click on Configuration at the top.
+In the left menu, click General configuration and review the timeout.
+Click Edit.
+Under Timeout, change the seconds to 10 (leave minutes at 0).
+Scroll down and click Save.
+Select the Test tab and click Test. You should see that the test was successful.
+Click Details to review the statusCode and function response.
+Review the X-Ray Service Map and Generated Traces
+Navigate to the Hello Cloud Gurus! Welcome to The Calorie Free Serverless Fortune Cookie website browser tab. (You can also locate the URL under S3 Management Console > Properties > scroll all the way down to Static website hosting, and copy/paste the bucket website endpoint in a new browser tab.)
+Generate traffic to the website by clicking Click here to learn your fortune! a few times.
+Navigate to the mylambdafunction - Lambda browser tab.
+Select the Monitor tab.
+Select Traces.
+Review the Service Map for activity. You can zoom in/out by clicking the magnifying glass icons on the right.
+Scroll down and review the activity under Traces.
+Introduce (Then Fix) an Error in the DynamoDB Access from the Lambda Execution Role
+Scroll up and click on the Configuration tab.
+Select Permissions in the left-hand menu.
+Under Execution role, right-click on the listed role and open it in a new tab.
+Under Permissions policies, select the checkbox for AmazonDynamoDBReadOnlyAccess.
+Click Remove in the top right corner.
+Click Delete in the pop-up that appears.
+Navigate back to the Hello Cloud Gurus! Welcome to The Calorie Free Serverless Fortune Cookie website browser tab.
+Click Click here to learn your fortune!. No new fortune will generate.
+Navigate to the mylamdafunction - Lambda browser tab.
+Click on the Test tab.
+Next to Test event, click Test.
+You should see the Execution result: failed message. Repeat the above step to ensure the event is recorded in X-Ray.
+Click on the Monitor tab.
+Scroll down to see the Service Map.
+Select fortunes DynamoDB Table within the service map.
+You should see an error between mylambdafunction Lambda Function and fortunes DynamoDB Table.
+Scroll down to Traces and click on one of the traces with a Trace status of Error. It will take you to the CloudWatch console.
+In the CloudWatch console, scroll down to Segments Timeline and click the DynamoDB Fault status.
+Under Segment details: DynamoDB, click Exceptions to view the details of the error.
+Navigate to the IAM Management Console browser tab > Roles. Select your Lambda function execution role.
+Next to Permissions policies, click Add permissions > Attach policies.
+In the Search bar under Other permissions policies, enter dynamo.
+Select the checkbox next to AmazonDynamoDBReadOnlyAccess.
+Click Attach policies.
+Note: You can ignore the permissions error message.
+
+Navigate to the Hello Cloud Gurus! Welcome to The Calorie Free Serverless Fortune Cookie website browser tab.
+Click Click here to learn your fortune!.
+Introduce an Error in the Lamba Code
+Navigate to the IAM Management Console browser tab.
+In the Search bar at the top, enter and select Lambda.
+Under Functions, click on the function listed.
+Click on the Code tab.
+Under Code source, locate table = dynambodb.Table('fortunes').
+Remove the letter s in fortunes.
+Click Deploy.
+Click Test. You should see an error.
+Navigate to the Hello Cloud Gurus! Welcome to The Calorie Free Serverless Fortune Cookie website browser tab and click Click here to learn your fortune!. No new fortune will generate.
+Navigate back to the mylamdafunction - Lambda browser tab.
+Select the Monitor tab.
+Review the Service Map. You should see a new DynamoDB table named fortune.
+Click on the fortune table and review the error message that appears between mylambdafunction Lambda Function and the fortune table.
+Click View traces.
+Scroll down to Traces.
+Click on one of the traces with a Response code of 502.
+Click the DynamoDB Fault status.
+Under Segment details: DynamoDB, click Exceptions to view the details of the error.
+Conclusion
+Congratulations — you've completed this hands-on lab!
