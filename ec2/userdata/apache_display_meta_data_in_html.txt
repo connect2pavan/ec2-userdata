@@ -3,11 +3,29 @@ sudo yum update -y
 sudo yum install httpd unzip -y
 
 -- ubuntu / Debian
-#!/bin/bash
-
 # Install Apache and Unzip packages
 sudo apt-get update -y
 sudo apt-get install apache2 unzip -y
+
+
+User data
+
+#!/bin/bash
+
+
+# Log file location
+LOG_FILE="/var/log/user_data.log"
+
+# Redirect all output to the log file
+exec >> $LOG_FILE 2>&1
+
+# Your user data script commands go here
+
+# Example commands
+echo "Starting user data script..."
+echo "This is a log message."
+
+# given yum or apt commands
 
 # Define variables
 AZ=$(curl -s http://169.254.169.254/latest/meta-data/placement/availability-zone)
