@@ -8,30 +8,39 @@ sudo apt-get update -y
 sudo apt-get install apache2 unzip -y
 
 
-User data
+<body text="blue">
+<body bgcolor="red">
+<body bgcolor="#FFA500"> <!-- Orange -->
+<body text="#008000"> <!-- Green -->
+<body bgcolor="rgb(255, 0, 0)"> <!-- Red -->
+<body bgcolor="rgba(255, 0, 0, 0.5)"> <!-- Red with 50% transparency -->
+<body text="rgb(0, 0, 255)"> <!-- Blue -->
+
+
+###########################################################
 
 #!/bin/bash
 
-
-# Log file location
-LOG_FILE="/var/log/user_data.log"
-
-# Redirect all output to the log file
-exec >> $LOG_FILE 2>&1
-
-# Your user data script commands go here
-
-# Example commands
-echo "Starting user data script..."
-echo "This is a log message."
-
-# given yum or apt commands
+# Install Apache and Unzip packages
+sudo apt-get update -y
+sudo apt-get install apache2 unzip -y
 
 # Define variables
 AZ=$(curl -s http://169.254.169.254/latest/meta-data/placement/availability-zone)
 INSTANCE_ID=$(curl -s http://169.254.169.254/latest/meta-data/instance-id)
 PUBLIC_IP=$(curl -s http://169.254.169.254/latest/meta-data/public-ipv4)
 LOCAL_IP=$(curl -s http://169.254.169.254/latest/meta-data/local-ipv4)
+
+# Define background color based on the value of AZ
+if [[ $AZ == *"ap-southeast-2a"* ]]; then
+  BACKGROUND_COLOR="#00FF00"  # Green for AZ 'a'
+elif [[ $AZ == *"ap-southeast-2b"* ]]; then
+  BACKGROUND_COLOR="#0000FF"  # Blue for AZ 'b'
+elif [[ $AZ == *"ap-southeast-2c"* ]]; then
+  BACKGROUND_COLOR="#FFA500"  # Orange for AZ 'c'
+else
+  BACKGROUND_COLOR="#FFFFFF"  # Default to white for unknown AZs
+fi
 
 # Detect the operating system and determine the user and package manager
 if [ -f /etc/os-release ]; then
@@ -52,11 +61,11 @@ else
   PACKAGE_MANAGER="unknown"
 fi
 
-# Create HTML content
-HTML_CONTENT="
+# Create HTML content with the background color
+HTML_CONTENT=$(cat <<EOM
 <html>
   <center>
-    <body bgcolor='black' text='#39ff14' style='font-family: Arial'>
+    <body bgcolor="$BACKGROUND_COLOR" style='font-family: Arial'>
       <h1>Load Balancer Demo</h1>
       <h3>Operating System: $OS_NAME</h3>
       <h3>Username: $USER_NAME</h3>
@@ -67,17 +76,8 @@ HTML_CONTENT="
       <h3>Local IP: $LOCAL_IP</h3>
     </body>
 </html>
-"
+EOM
+)
 
 # Echo HTML content to index.html
 echo "$HTML_CONTENT" > /var/www/html/index.html
-
-
-
-<body text="blue">
-<body bgcolor="red">
-<body bgcolor="#FFA500"> <!-- Orange -->
-<body text="#008000"> <!-- Green -->
-<body bgcolor="rgb(255, 0, 0)"> <!-- Red -->
-<body bgcolor="rgba(255, 0, 0, 0.5)"> <!-- Red with 50% transparency -->
-<body text="rgb(0, 0, 255)"> <!-- Blue -->
