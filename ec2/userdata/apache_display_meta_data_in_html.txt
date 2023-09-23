@@ -1,13 +1,65 @@
+-- Amazon Linux / RHEL
+sudo yum update -y
+sudo yum install httpd unzip -y
+
+-- ubuntu / Debian
 #!/bin/bash
-echo 'cloud_user:s|0QeqZf' | sudo chpasswd
+
+# Install Apache and Unzip packages
 sudo apt-get update -y
 sudo apt-get install apache2 unzip -y
-echo '<html><center><body bgcolor="black" text="#39ff14" style="font-family: Arial"><h1>Load Balancer Demo</h1><h3>Availability Zone: ' > /var/www/html/index.html
-curl http://169.254.169.254/latest/meta-data/placement/availability-zone >> /var/www/html/index.html
-echo '</h3> <h3>Instance Id: ' >> /var/www/html/index.html
-curl http://169.254.169.254/latest/meta-data/instance-id >> /var/www/html/index.html
-echo '</h3> <h3>Public IP: ' >> /var/www/html/index.html
-curl http://169.254.169.254/latest/meta-data/public-ipv4 >> /var/www/html/index.html
-echo '</h3> <h3>Local IP: ' >> /var/www/html/index.html
-curl http://169.254.169.254/latest/meta-data/local-ipv4 >> /var/www/html/index.html
-echo '</h3></html> ' >> /var/www/html/index.html  
+
+# Define variables
+AZ=$(curl -s http://169.254.169.254/latest/meta-data/placement/availability-zone)
+INSTANCE_ID=$(curl -s http://169.254.169.254/latest/meta-data/instance-id)
+PUBLIC_IP=$(curl -s http://169.254.169.254/latest/meta-data/public-ipv4)
+LOCAL_IP=$(curl -s http://169.254.169.254/latest/meta-data/local-ipv4)
+
+# Detect the operating system and determine the user and package manager
+if [ -f /etc/os-release ]; then
+  OS_NAME=$(cat /etc/os-release | grep PRETTY_NAME | cut -d'=' -f2- | tr -d '"')
+  if [ -n "$(command -v apt-get)" ]; then
+    USER_NAME="ubuntu"
+    PACKAGE_MANAGER="apt"
+  elif [ -n "$(command -v yum)" ]; then
+    USER_NAME="ec2-user"
+    PACKAGE_MANAGER="yum"
+  else
+    USER_NAME="unknown"
+    PACKAGE_MANAGER="unknown"
+  fi
+else
+  OS_NAME="unknown"
+  USER_NAME="unknown"
+  PACKAGE_MANAGER="unknown"
+fi
+
+# Create HTML content
+HTML_CONTENT="
+<html>
+  <center>
+    <body bgcolor='black' text='#39ff14' style='font-family: Arial'>
+      <h1>Load Balancer Demo</h1>
+      <h3>Operating System: $OS_NAME</h3>
+      <h3>Username: $USER_NAME</h3>
+      <h3>Package Manager: $PACKAGE_MANAGER</h3>
+      <h3>Availability Zone: $AZ</h3>
+      <h3>Instance Id: $INSTANCE_ID</h3>
+      <h3>Public IP: $PUBLIC_IP</h3>
+      <h3>Local IP: $LOCAL_IP</h3>
+    </body>
+</html>
+"
+
+# Echo HTML content to index.html
+echo "$HTML_CONTENT" > /var/www/html/index.html
+
+
+
+<body text="blue">
+<body bgcolor="red">
+<body bgcolor="#FFA500"> <!-- Orange -->
+<body text="#008000"> <!-- Green -->
+<body bgcolor="rgb(255, 0, 0)"> <!-- Red -->
+<body bgcolor="rgba(255, 0, 0, 0.5)"> <!-- Red with 50% transparency -->
+<body text="rgb(0, 0, 255)"> <!-- Blue -->
